@@ -4,13 +4,20 @@ from supabase import create_client
 
 # Page Configuration
 st.set_page_config(
-    page_title="Xpense Tracker Cloud", page_icon="⚡", layout="wide"
+    page_title="Xpense Tracker Pro", page_icon="⚡", layout="wide"
 )
 
-# --- SUPABASE CONNECTION CONFIG ---
-# Yahan apni Supabase URL aur Anon Key daalein jo aapne Step 3 mein copy ki thi
-SUPABASE_URL = "https://vrxhpolhefvuqxtshxsq.supabase.co"
-SUPABASE_KEY = "sb_publishable_-yQnaJJeKHq0XEm1-4-AQw_HTBUynKk"
+# --- SECURE CREDENTIALS SETUP ---
+try:
+  SUPABASE_URL = st.secrets["https://vrxhpolhefvuqxtshxsq.supabase.co"]
+  SUPABASE_KEY = st.secrets["sb_publishable_-yQnaJJeKHq0XEm1-4-AQw_HTBUynKk"]
+except:
+  st.error(
+      "⚠️ Supabase URL or Key missing! Please configure them in Streamlit"
+      " Secrets."
+  )
+  st.stop()
+
 
 @st.cache_resource
 def init_supabase():
@@ -27,6 +34,7 @@ st.markdown(
         .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: black; border: none; }
         .stButton>button:hover { opacity: 0.9; }
         .auth-card { background-color: #111827; padding: 30px; border-radius: 12px; border: 1px solid #1F2937; max-width: 400px; margin: auto; margin-top: 10vh; }
+        .motivation-banner { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); padding: 15px 20px; border-radius: 10px; border-left: 5px solid #4facfe; margin-bottom: 20px; font-size: 16px; color: #e5e7eb; }
     </style>
 """,
     unsafe_allow_html=True,
@@ -46,6 +54,17 @@ if not st.session_state.user:
   st.markdown(
       "<p style='text-align: center; color: gray;'>Secure Multi-User Financial"
       " Ecosystem</p>",
+      unsafe_allow_html=True,
+  )
+
+  # Motivational / Financial Support Banner on Login page
+  st.markdown(
+      """
+        <div style='text-align: center; max-width: 600px; margin: 20px auto; padding: 15px; background: rgba(79, 172, 254, 0.1); border-radius: 10px; border: 1px solid rgba(79, 172, 254, 0.2);'>
+            <p style='color: #4facfe; font-size: 18px; font-weight: 600; margin: 0;'>💡 "Financial freedom isn't about having a lot of money; it's about having control over your choices."</p>
+            <p style='color: #9ca3af; font-size: 13px; margin-top: 5px;'>Track smart today, secure your tomorrow! 🚀</p>
+        </div>
+    """,
       unsafe_allow_html=True,
   )
 
@@ -98,10 +117,15 @@ else:
   # --- MAIN DASHBOARD (AFTER LOGIN) ---
   current_user = st.session_state.user
 
+  # Fetch user profile / settings if stored, or use session state for onboarding
+  if "onboarded" not in st.session_state:
+    st.session_state.onboarded = False
+
+  # Top Bar with Welcome Smile Greeting
   col_h1, col_h2 = st.columns([3, 1])
   with col_h1:
     st.markdown(
-        f"<h1>⚡ Xpense Tracker <span style='font-size:16px;"
+        f"<h1>😊 Welcome back, friend! <span style='font-size:16px;"
         f" color:#4facfe;'>({current_user.email})</span></h1>",
         unsafe_allow_html=True,
     )
@@ -109,7 +133,73 @@ else:
     if st.button("🚪 Logout"):
       supabase.auth.sign_out()
       st.session_state.user = None
+      st.session_state.onboarded = False
       st.rerun()
+
+  # Motivational Financial Quote Banner
+  st.markdown(
+      """
+        <div class="motivation-banner">
+            ✨ <b>Financial Tip of the Day:</b> "Don't save what is left after spending, but spend what is left after saving." Let's make every penny count today! 🎯
+        </div>
+    """,
+      unsafe_allow_html=True,
+  )
+
+  # --- FIRST TIME ONBOARDING SETUP WIZARD ---
+  # If user logs in for the first time in this session, show a welcoming setup guide
+  if not st.session_state.onboarded:
+    with st.expander(
+        "🌟 Welcome to Xpense Tracker Pro! Click here to quick-setup & view"
+        " features",
+        expanded=True,
+    ):
+      st.markdown(
+          "### 👋 Hello! We are thrilled to have you here. Let's set up your"
+          " financial goals for this month:"
+      )
+
+      col_o1, col_o2 = st.columns(2)
+      with col_o1:
+        setup_budget = st.number_input(
+            "What is your Monthly Budget? (₹)",
+            min_value=1000,
+            value=25000,
+            step=500,
+            key="setup_b",
+        )
+      with col_o2:
+        setup_goal = st.number_input(
+            "How much do you want to save monthly? (Goal) (₹)",
+            min_value=0,
+            value=5000,
+            step=500,
+            key="setup_g",
+        )
+
+      st.markdown("---")
+      st.markdown("### 🚀 Quick Guide & Features:")
+      st.markdown(
+          "• **➕ Expense Logging:** Easily record your spends through the"
+          " sidebar control center.\n• **🏷️ Categories:** Group your expenses"
+          " (Food, Study, Transport, etc.) and customize them anytime.\n•"
+          " **📊 Analytics & Calculator:** Built-in live visual charts to track"
+          " where your money goes.\n• **🎯 Goal Tracking:** Keep an eye on your"
+          " savings target alongside your budget!"
+      )
+
+      if st.button("🚀 Get Started & Save Setup"):
+        st.session_state.monthly_budget = setup_budget
+        st.session_state.savings_goal = setup_goal
+        st.session_state.onboarded = True
+        st.success("Setup complete! Let's conquer your financial goals! 🎉")
+        st.rerun()
+
+  # Ensure default values exist if onboarding was skipped/bypassed
+  if "monthly_budget" not in st.session_state:
+    st.session_state.monthly_budget = 25000
+  if "savings_goal" not in st.session_state:
+    st.session_state.savings_goal = 5000
 
   # Fetch data specific to this logged-in user from Supabase
   try:
@@ -126,28 +216,44 @@ else:
 
   df = pd.DataFrame(expenses_data)
 
-  monthly_budget = 25000  # Default budget limit
-  total_spent = int(df["amount"].sum()) if not df.empty else 0
-  remaining_budget = monthly_budget - total_spent
+  total_spent = int(df["amount"].sum()) if not df.empty and "amount" in df else 0
+  remaining_budget = st.session_state.monthly_budget - total_spent
 
   # Metrics Row
-  m1, m2, m3 = st.columns(3)
-  m1.metric("Total Budget", f"₹ {monthly_budget:,}")
+  m1, m2, m3, m4 = st.columns(4)
+  m1.metric("Monthly Budget", f"₹ {st.session_state.monthly_budget:,}")
   m2.metric("Total Spent", f"₹ {total_spent:,}")
-  m3.metric("Remaining", f"₹ {remaining_budget:,}")
+  m3.metric("Remaining Balance", f"₹ {remaining_budget:,}")
+  m4.metric("Savings Goal 🎯", f"₹ {st.session_state.savings_goal:,}")
 
   st.markdown("---")
 
-  # --- SIDEBAR: ADD EXPENSE ---
+  # --- SIDEBAR: CONTROL CENTER & BUDGET/GOAL EDITS ---
   st.sidebar.markdown("## 🕹️ Control Center")
   st.sidebar.markdown(f"**Logged in as:** {current_user.email}")
   st.sidebar.markdown("---")
 
+  # Edit Budget & Savings Goal anytime from sidebar
+  st.sidebar.markdown("### ⚙️ Update Financial Targets")
+  st.session_state.monthly_budget = st.sidebar.number_input(
+      "Monthly Budget (₹)",
+      min_value=1000,
+      value=st.session_state.monthly_budget,
+      step=500,
+  )
+  st.session_state.savings_goal = st.sidebar.number_input(
+      "Monthly Savings Goal (₹)",
+      min_value=0,
+      value=st.session_state.savings_goal,
+      step=500,
+  )
+
+  st.sidebar.markdown("---")
   st.sidebar.markdown("### ➕ Log New Expense")
   with st.sidebar.form("expense_logger", clear_on_submit=True):
     date = st.date_input("Date")
     category = st.selectbox(
-        "Category",
+        "Category (Customizable)",
         [
             "Food & Dining",
             "Study / Education",
@@ -155,6 +261,7 @@ else:
             "Entertainment",
             "Utilities",
             "Shopping",
+            "Others",
         ],
     )
     description = st.text_input("Description / Notes")
@@ -189,7 +296,7 @@ else:
 
   with col_left:
     st.markdown("### 📋 Your Personal Transactions")
-    if not df.empty:
+    if not df.empty and "amount" in df:
       display_df = df[
           ["date", "category", "description", "amount", "payment_method"]
       ].rename(
@@ -209,7 +316,7 @@ else:
 
   with col_right:
     st.markdown("### 📊 Spend Analytics")
-    if not df.empty:
+    if not df.empty and "amount" in df:
       cat_summary = df.groupby("category")["amount"].sum().reset_index()
       cat_summary.columns = ["Category", "Amount (₹)"]
       st.bar_chart(cat_summary, x="Category", y="Amount (₹)", color="#4facfe")
