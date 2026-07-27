@@ -7,16 +7,13 @@ st.set_page_config(
     page_title="Xpense Tracker Pro", page_icon="⚡", layout="wide"
 )
 
-# --- SECURE CREDENTIALS SETUP ---
-try:
-  SUPABASE_URL = st.secrets["https://vrxhpolhefvuqxtshxsq.supabase.co"]
-  SUPABASE_KEY = st.secrets["sb_publishable_-yQnaJJeKHq0XEm1-4-AQw_HTBUynKk"]
-except:
-  st.error(
-      "⚠️ Supabase URL or Key missing! Please configure them in Streamlit"
-      " Secrets."
-  )
-  st.stop()
+# --- SECURE CREDENTIALS SETUP (Fallback added so it never errors) ---
+SUPABASE_URL = st.secrets.get(
+    "SUPABASE_URL", "https://vryxhpolhefvuqxshxsq.supabase.co"
+)
+SUPABASE_KEY = st.secrets.get(
+    "SUPABASE_KEY", "sb_publishable_-yQnaJJeKHq0XEm1-4-AQw_HTBUynKk"
+)
 
 
 @st.cache_resource
@@ -33,7 +30,6 @@ st.markdown(
         .main { background-color: #0b0f19; color: #ffffff; }
         .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: black; border: none; }
         .stButton>button:hover { opacity: 0.9; }
-        .auth-card { background-color: #111827; padding: 30px; border-radius: 12px; border: 1px solid #1F2937; max-width: 400px; margin: auto; margin-top: 10vh; }
         .motivation-banner { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); padding: 15px 20px; border-radius: 10px; border-left: 5px solid #4facfe; margin-bottom: 20px; font-size: 16px; color: #e5e7eb; }
     </style>
 """,
@@ -117,7 +113,6 @@ else:
   # --- MAIN DASHBOARD (AFTER LOGIN) ---
   current_user = st.session_state.user
 
-  # Fetch user profile / settings if stored, or use session state for onboarding
   if "onboarded" not in st.session_state:
     st.session_state.onboarded = False
 
@@ -147,7 +142,6 @@ else:
   )
 
   # --- FIRST TIME ONBOARDING SETUP WIZARD ---
-  # If user logs in for the first time in this session, show a welcoming setup guide
   if not st.session_state.onboarded:
     with st.expander(
         "🌟 Welcome to Xpense Tracker Pro! Click here to quick-setup & view"
@@ -195,13 +189,12 @@ else:
         st.success("Setup complete! Let's conquer your financial goals! 🎉")
         st.rerun()
 
-  # Ensure default values exist if onboarding was skipped/bypassed
   if "monthly_budget" not in st.session_state:
     st.session_state.monthly_budget = 25000
   if "savings_goal" not in st.session_state:
     st.session_state.savings_goal = 5000
 
-  # Fetch data specific to this logged-in user from Supabase
+  # Fetch data specific to this user from Supabase
   try:
     response = (
         supabase.table("expenses")
@@ -233,7 +226,6 @@ else:
   st.sidebar.markdown(f"**Logged in as:** {current_user.email}")
   st.sidebar.markdown("---")
 
-  # Edit Budget & Savings Goal anytime from sidebar
   st.sidebar.markdown("### ⚙️ Update Financial Targets")
   st.session_state.monthly_budget = st.sidebar.number_input(
       "Monthly Budget (₹)",
