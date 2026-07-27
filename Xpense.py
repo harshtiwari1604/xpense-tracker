@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Xpense Tracker Pro", page_icon="⚡", layout="wide"
 )
 
-# --- SECURE CREDENTIALS SETUP (Fallback added so it never errors) ---
+# --- SECURE CREDENTIALS SETUP ---
 SUPABASE_URL = st.secrets.get(
     "SUPABASE_URL", "https://vryxhpolhefvuqxshxsq.supabase.co"
 )
@@ -31,16 +31,16 @@ st.markdown(
         .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: black; border: none; }
         .stButton>button:hover { opacity: 0.9; }
         .motivation-banner { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); padding: 15px 20px; border-radius: 10px; border-left: 5px solid #4facfe; margin-bottom: 20px; font-size: 16px; color: #e5e7eb; }
+        .tip-box { background: rgba(79, 172, 254, 0.08); padding: 10px 15px; border-radius: 8px; border: 1px dashed #4facfe; margin-bottom: 15px; font-size: 14px; color: #4facfe; }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# Session state for user auth
 if "user" not in st.session_state:
   st.session_state.user = None
 
-# --- AUTHENTICATION SCREEN (LOGIN / SIGNUP) ---
+# --- AUTHENTICATION SCREEN ---
 if not st.session_state.user:
   st.markdown(
       "<h1 style='text-align: center; color: #4facfe;'>⚡ Xpense Tracker"
@@ -53,7 +53,6 @@ if not st.session_state.user:
       unsafe_allow_html=True,
   )
 
-  # Motivational / Financial Support Banner on Login page
   st.markdown(
       """
         <div style='text-align: center; max-width: 600px; margin: 20px auto; padding: 15px; background: rgba(79, 172, 254, 0.1); border-radius: 10px; border: 1px solid rgba(79, 172, 254, 0.2);'>
@@ -110,13 +109,28 @@ if not st.session_state.user:
             st.error(f"Signup failed: {e}")
 
 else:
-  # --- MAIN DASHBOARD (AFTER LOGIN) ---
   current_user = st.session_state.user
 
-  if "onboarded" not in st.session_state:
-    st.session_state.onboarded = False
+  # Fetch profile data from database (Default: 25000 budget, 5000 goal)
+  try:
+    profile_res = (
+        supabase.table("user_profiles")
+        .select("*")
+        .eq("user_id", current_user.id)
+        .execute()
+    )
+    if profile_res.data:
+      user_profile = profile_res.data[0]
+      monthly_budget = user_profile.get("monthly_budget", 25000)
+      savings_goal = user_profile.get("savings_goal", 5000)
+    else:
+      monthly_budget = 25000
+      savings_goal = 5000
+  except:
+    monthly_budget = 25000
+    savings_goal = 5000
 
-  # Top Bar with Welcome Smile Greeting
+  # Top Bar with Welcome Greeting
   col_h1, col_h2 = st.columns([3, 1])
   with col_h1:
     st.markdown(
@@ -128,10 +142,8 @@ else:
     if st.button("🚪 Logout"):
       supabase.auth.sign_out()
       st.session_state.user = None
-      st.session_state.onboarded = False
       st.rerun()
 
-  # Motivational Financial Quote Banner
   st.markdown(
       """
         <div class="motivation-banner">
@@ -141,60 +153,17 @@ else:
       unsafe_allow_html=True,
   )
 
-  # --- FIRST TIME ONBOARDING SETUP WIZARD ---
-  if not st.session_state.onboarded:
-    with st.expander(
-        "🌟 Welcome to Xpense Tracker Pro! Click here to quick-setup & view"
-        " features",
-        expanded=True,
-    ):
-      st.markdown(
-          "### 👋 Hello! We are thrilled to have you here. Let's set up your"
-          " financial goals for this month:"
-      )
+  # Subtle guide tip
+  st.markdown(
+      """
+        <div class="tip-box">
+            👉 <b>Quick Tip:</b> Daily expenses add karne ke liye <b>left sidebar (Control Center)</b> ka use karein. Wahan se aap apna budget bhi change kar sakte hain!
+        </div>
+    """,
+      unsafe_allow_html=True,
+  )
 
-      col_o1, col_o2 = st.columns(2)
-      with col_o1:
-        setup_budget = st.number_input(
-            "What is your Monthly Budget? (₹)",
-            min_value=1000,
-            value=25000,
-            step=500,
-            key="setup_b",
-        )
-      with col_o2:
-        setup_goal = st.number_input(
-            "How much do you want to save monthly? (Goal) (₹)",
-            min_value=0,
-            value=5000,
-            step=500,
-            key="setup_g",
-        )
-
-      st.markdown("---")
-      st.markdown("### 🚀 Quick Guide & Features:")
-      st.markdown(
-          "• **➕ Expense Logging:** Easily record your spends through the"
-          " sidebar control center.\n• **🏷️ Categories:** Group your expenses"
-          " (Food, Study, Transport, etc.) and customize them anytime.\n•"
-          " **📊 Analytics & Calculator:** Built-in live visual charts to track"
-          " where your money goes.\n• **🎯 Goal Tracking:** Keep an eye on your"
-          " savings target alongside your budget!"
-      )
-
-      if st.button("🚀 Get Started & Save Setup"):
-        st.session_state.monthly_budget = setup_budget
-        st.session_state.savings_goal = setup_goal
-        st.session_state.onboarded = True
-        st.success("Setup complete! Let's conquer your financial goals! 🎉")
-        st.rerun()
-
-  if "monthly_budget" not in st.session_state:
-    st.session_state.monthly_budget = 25000
-  if "savings_goal" not in st.session_state:
-    st.session_state.savings_goal = 5000
-
-  # Fetch data specific to this user from Supabase
+  # Fetch expenses
   try:
     response = (
         supabase.table("expenses")
@@ -203,49 +172,53 @@ else:
         .execute()
     )
     expenses_data = response.data
-  except Exception as e:
+  except:
     expenses_data = []
-    st.error(f"Error fetching data: {e}")
 
   df = pd.DataFrame(expenses_data)
-
   total_spent = int(df["amount"].sum()) if not df.empty and "amount" in df else 0
-  remaining_budget = st.session_state.monthly_budget - total_spent
+  remaining_budget = monthly_budget - total_spent
 
   # Metrics Row
   m1, m2, m3, m4 = st.columns(4)
-  m1.metric("Monthly Budget", f"₹ {st.session_state.monthly_budget:,}")
+  m1.metric("Monthly Budget", f"₹ {monthly_budget:,}")
   m2.metric("Total Spent", f"₹ {total_spent:,}")
   m3.metric("Remaining Balance", f"₹ {remaining_budget:,}")
-  m4.metric("Savings Goal 🎯", f"₹ {st.session_state.savings_goal:,}")
+  m4.metric("Savings Goal 🎯", f"₹ {savings_goal:,}")
 
   st.markdown("---")
 
-  # --- SIDEBAR: CONTROL CENTER & BUDGET/GOAL EDITS ---
+  # --- SIDEBAR: CONTROL CENTER ---
   st.sidebar.markdown("## 🕹️ Control Center")
   st.sidebar.markdown(f"**Logged in as:** {current_user.email}")
   st.sidebar.markdown("---")
 
-  st.sidebar.markdown("### ⚙️ Update Financial Targets")
-  st.session_state.monthly_budget = st.sidebar.number_input(
-      "Monthly Budget (₹)",
-      min_value=1000,
-      value=st.session_state.monthly_budget,
-      step=500,
+  st.sidebar.markdown("### ⚙️ Update Targets")
+  new_b = st.sidebar.number_input(
+      "Monthly Budget (₹)", min_value=1000, value=int(monthly_budget), step=500
   )
-  st.session_state.savings_goal = st.sidebar.number_input(
-      "Monthly Savings Goal (₹)",
-      min_value=0,
-      value=st.session_state.savings_goal,
-      step=500,
+  new_g = st.sidebar.number_input(
+      "Savings Goal (₹)", min_value=0, value=int(savings_goal), step=500
   )
+
+  if st.sidebar.button("Update Targets in Cloud"):
+    try:
+      supabase.table("user_profiles").upsert({
+          "user_id": current_user.id,
+          "monthly_budget": new_b,
+          "savings_goal": new_g,
+      }).execute()
+      st.sidebar.success("Updated!")
+      st.rerun()
+    except Exception as e:
+      st.sidebar.error(f"Error: {e}")
 
   st.sidebar.markdown("---")
   st.sidebar.markdown("### ➕ Log New Expense")
   with st.sidebar.form("expense_logger", clear_on_submit=True):
     date = st.date_input("Date")
     category = st.selectbox(
-        "Category (Customizable)",
+        "Category",
         [
             "Food & Dining",
             "Study / Education",
@@ -283,7 +256,7 @@ else:
       else:
         st.sidebar.error("Amount must be > 0")
 
-  # --- MAIN BODY: TRANSACTIONS & ANALYTICS ---
+  # --- MAIN BODY ---
   col_left, col_right = st.columns([1.6, 1])
 
   with col_left:
@@ -303,7 +276,8 @@ else:
       st.dataframe(display_df, use_container_width=True)
     else:
       st.info(
-          "No expenses recorded yet. Add your first spend from the sidebar!"
+          "No expenses recorded yet. Use the left sidebar to add your first"
+          " spend!"
       )
 
   with col_right:
