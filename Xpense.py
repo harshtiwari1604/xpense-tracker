@@ -9,8 +9,8 @@ st.set_page_config(
 
 # --- SUPABASE CONNECTION CONFIG ---
 # Yahan apni Supabase URL aur Anon Key daalein jo aapne Step 3 mein copy ki thi
-SUPABASE_URL = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyeGhwb2xoZWZ2dXF4dHNoeHNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNzQ1MDcsImV4cCI6MjEwMDc1MDUwN30.AyjGwbN-jIKOHhxVbuJWbg3Y8juNTGGGn1LWsAFa_0k"
-SUPABASE_KEY = "https://vrxhpolhefvuqxtshxsq.supabase.co"
+SUPABASE_URL = "https://vrxhpolhefvuqxtshxsq.supabase.co"
+SUPABASE_KEY = "sb_publishable_-yQnaJJeKHq0XEm1-4-AQw_HTBUynKk"
 
 @st.cache_resource
 def init_supabase():
