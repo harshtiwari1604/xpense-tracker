@@ -2,15 +2,13 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from supabase import create_client
-from PIL import Image # Profile photo upload ke liye PIL zaroori hai
-import io
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
-    page_title="Xpense Tracker Pro", page_icon="⚡", layout="centered" # Centered layout mobile feel ke liye behtar hai
+    page_title="Xpense Tracker Pro", page_icon="⚡", layout="centered"
 )
 
-# --- SECURE CREDENTIALS SETUP (Replace with your correct credentials) ---
+# --- SECURE CREDENTIALS SETUP ---
 SUPABASE_URL = st.secrets.get(
     "SUPABASE_URL", "https://bqnmzwqayxetuhlygjim.supabase.co"
 )
@@ -25,64 +23,53 @@ def init_supabase():
 
 supabase = init_supabase()
 
-# --- PREMIUM STYLING (INSPIRED BY Image 4 & 6) ---
+# --- CLEAN & MODERN STYLING ---
 st.markdown(
     """
     <style>
-        /* General App Background (Clean White) */
+        /* Main Background */
         .stApp {
-            background-color: #FFFFFF;
+            background-color: #F8F9FA;
         }
         
-        /* Headers (Black) */
+        /* Headers formatting */
         h1, h2, h3 {
-            color: #121212;
-            font-family: sans-serif;
+            color: #1A1A1A !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
-        /* Profile Upload Box (Light Beige/Gray) */
-        .profile-upload {
-            border: 2px dashed #E0E0E0;
-            border-radius: 15px;
-            padding: 20px;
-            text-align: center;
-            background-color: #FBF8F5; /* Waisa hi cream color */
-            margin-bottom: 20px;
-        }
-        
-        /* Input Fields (Clean White) */
-        [data-testid="stTextInput"] > div > div > input {
+        /* Input fields styling */
+        [data-testid="stTextInput"] input {
             background-color: #FFFFFF;
-            border: 1px solid #E0E0E0;
+            color: #1A1A1A;
+            border: 1px solid #CED4DA;
             border-radius: 8px;
             padding: 10px;
         }
         
-        /* Yellow "Next/Action" Button (INSPIRED BY YELLOW HEADER) */
+        /* Primary Action Buttons (Yellow Theme) */
         .stButton>button {
             width: 100%;
-            border-radius: 30px; /* Gol button */
+            border-radius: 25px;
             font-weight: bold;
-            background-color: #FFD700; /* Solid Yellow */
-            color: #121212; /* Black text */
+            background-color: #FFC107;
+            color: #1A1A1A;
             border: none;
-            padding: 12px;
-            margin-top: 20px;
+            padding: 10px;
+            box-shadow: 0px 4px 6px rgba(0,0,0,0.05);
         }
         .stButton>button:hover {
-            background-color: #E6C200; /* Thoda dark yellow hover par */
-        }
-
-        /* Tabs Styling (To match the sleek yellow/black top bar feel) */
-        [data-testid="stTabs"] button {
-             font-weight: bold;
-             color: #666666;
-        }
-        [data-testid="stTabs"] button[data-baseweb="tab"]:aria-selected="true" {
-            color: #FFD700; /* Active tab yellow */
-            border-bottom-color: #FFD700 !important;
+            background-color: #E0A800;
+            color: #000000;
         }
         
+        /* Card container look */
+        .auth-container {
+            background: #FFFFFF;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
+        }
     </style>
 """,
     unsafe_allow_html=True,
@@ -91,42 +78,19 @@ st.markdown(
 if "user" not in st.session_state:
     st.session_state.user = None
 
-# --- AUTHENTICATION SCREEN (MODIFIED TO MATCH IMAGE 4) ---
+# --- AUTHENTICATION SCREEN ---
 if not st.session_state.user:
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    # Spacer to push content down slightly
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    # Title: "What's your name?" (INSPIRED BY IMAGE 4)
-    st.markdown(
-        "<h1 style='text-align: center;'>What's your name?</h1>",
-        unsafe_allow_html=True,
-    )
-    
-    # Profile Photo Upload Placeholder (INSPIRED BY IMAGE 4)
-    col_space, col_photo, col_space2 = st.columns([1, 2, 1])
-    with col_photo:
-        st.markdown('<div class="profile-upload">', unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
-        if uploaded_file is not None:
-            # Display uploaded image (circular crop would need more advanced CSS)
-            image = Image.open(uploaded_file)
-            st.image(image, width=150) 
-        else:
-             # Placeholder icon/text
-            st.markdown("<br><p style='color:gray; font-size:50px;'>📷</p><p style='color:gray;'>Upload photo</p>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # Columns for layout control
-    col1, col2, col3 = st.columns([1, 4, 1])
+    col1, col2, col3 = st.columns([1, 1.5, 1])
     with col2:
-        # Name Input (INSPIRED BY IMAGE 4)
-        user_full_name = st.text_input("", placeholder="e.g., Harsh Tiwari", label_visibility="collapsed")
+        st.markdown("<h1 style='text-align: center; font-size: 28px;'>⚡ Xpense Tracker</h1>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #6C757D; margin-bottom: 30px;'>Manage your money smartly</p>", unsafe_allow_html=True)
         
-        # Login/Signup Tabs (Sleek addition to onboarding)
-        sub_tab1, sub_tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
+        tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
         
-        with sub_tab1:
+        with tab1:
+            st.markdown("<br>", unsafe_allow_html=True)
             with st.form("login_form"):
                 login_email = st.text_input("Email")
                 login_pass = st.text_input("Password", type="password")
@@ -144,7 +108,8 @@ if not st.session_state.user:
                     except Exception as e:
                         st.error(f"Login failed: {e}")
 
-        with sub_tab2:
+        with tab2:
+            st.markdown("<br>", unsafe_allow_html=True)
             with st.form("signup_form"):
                 signup_email = st.text_input("Email Address")
                 signup_pass = st.text_input(
@@ -159,23 +124,154 @@ if not st.session_state.user:
                             "password": signup_pass,
                         })
                         st.success(
-                            "Account created! Check your email to verify or try logging"
-                            " in."
+                            "Account created! Check your email to verify or try logging in."
                         )
                     except Exception as e:
                         st.error(f"Signup failed: {e}")
 
 else:
-    # --- MAIN DASHBOARD (WILL BE MODIFIED NEXT TO MATCH IMAGE 6 & 7) ---
-    # For now, we'll just keep it simple and load the existing dashboard logic.
-    # We will replace this whole "else" block in the next step to match the yellow header.
-    
     current_user = st.session_state.user
-    st.write(f"Logged in as: {current_user.email}")
-    if st.button("Logout"):
-        supabase.auth.sign_out()
-        st.session_state.user = None
-        st.rerun()
     
-    # (The rest of your original dashboard code would go here for now)
-    # st.write("Dashboard under construction to match new UI...")
+    # Fetch profile data from database
+    try:
+        profile_res = (
+            supabase.table("user_profiles")
+            .select("*")
+            .eq("user_id", current_user.id)
+            .execute()
+        )
+        if profile_res.data:
+            user_profile = profile_res.data[0]
+            monthly_budget = user_profile.get("monthly_budget", 25000)
+            savings_goal = user_profile.get("savings_goal", 5000)
+        else:
+            monthly_budget = 25000
+            savings_goal = 5000
+    except:
+        monthly_budget = 25000
+        savings_goal = 5000
+
+    # Top Bar with Welcome Greeting
+    col_h1, col_h2 = st.columns([3, 1])
+    with col_h1:
+        st.markdown(f"<h2>Welcome back! 👋</h2>", unsafe_allow_html=True)
+        st.caption(f"Logged in as: {current_user.email}")
+    with col_h2:
+        if st.button("🚪 Logout"):
+            supabase.auth.sign_out()
+            st.session_state.user = None
+            st.rerun()
+
+    # Fetch expenses
+    try:
+        response = (
+            supabase.table("expenses")
+            .select("*")
+            .eq("user_id", current_user.id)
+            .execute()
+        )
+        expenses_data = response.data
+    except:
+        expenses_data = []
+
+    df = pd.DataFrame(expenses_data)
+    total_spent = int(df["amount"].sum()) if not df.empty and "amount" in df else 0
+    remaining_budget = monthly_budget - total_spent
+
+    # Metrics Row
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Monthly Budget", f"₹ {monthly_budget:,}")
+    m2.metric("Total Spent", f"₹ {total_spent:,}")
+    m3.metric("Remaining Balance", f"₹ {remaining_budget:,}")
+    m4.metric("Savings Goal 🎯", f"₹ {savings_goal:,}")
+
+    st.markdown("---")
+
+    # Sidebar
+    st.sidebar.markdown("### ➕ Log New Expense")
+    with st.sidebar.form("expense_logger", clear_on_submit=True):
+        date = st.date_input("Date")
+        category = st.selectbox(
+            "Category",
+            [
+                "Food & Dining",
+                "Study / Education",
+                "Transport",
+                "Entertainment",
+                "Utilities",
+                "Shopping",
+                "Others",
+            ],
+        )
+        description = st.text_input("Description / Notes")
+        amount = st.number_input(
+            "Amount (₹)", min_value=0, value=100, step=10, format="%d"
+        )
+        payment_method = st.selectbox(
+            "Payment Mode", ["UPI", "Credit Card", "Net Banking", "Cash"]
+        )
+
+        submitted = st.form_submit_button("Record Spend")
+        if submitted:
+            if amount > 0:
+                try:
+                    supabase.table("expenses").insert({
+                        "user_id": current_user.id,
+                        "date": str(date),
+                        "category": category,
+                        "description": description,
+                        "amount": int(amount),
+                        "payment_method": payment_method,
+                    }).execute()
+                    st.sidebar.success("Saved!")
+                    st.rerun()
+                except Exception as e:
+                    st.sidebar.error(f"Error: {e}")
+            else:
+                st.sidebar.error("Amount must be > 0")
+
+    # Main Body Layout
+    col_left, col_right = st.columns([1.5, 1])
+
+    with col_left:
+        st.markdown("### 📋 Transactions")
+        if not df.empty and "amount" in df:
+            display_df = df[
+                ["id", "date", "category", "description", "amount", "payment_method"]
+            ].rename(
+                columns={
+                    "id": "ID",
+                    "date": "Date",
+                    "category": "Category",
+                    "description": "Description",
+                    "amount": "Amount (₹)",
+                    "payment_method": "Payment Method",
+                }
+            )
+            with st.container(height=300):
+                st.dataframe(display_df.drop(columns=["ID"]), use_container_width=True)
+        else:
+            st.info("No expenses added yet.")
+
+    with col_right:
+        st.markdown("### 📊 Analytics")
+        if not df.empty and "amount" in df:
+            cat_summary = df.groupby("category")["amount"].sum().reset_index()
+            cat_summary.columns = ["Category", "Amount"]
+
+            fig = px.pie(
+                cat_summary,
+                names="Category",
+                values="Amount",
+                hole=0.4,
+                color_discrete_sequence=px.colors.sequential.Sunset,
+            )
+            fig.update_layout(
+                margin=dict(t=10, b=10, l=10, r=10),
+                height=280,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Chart will show up after adding expenses.")
