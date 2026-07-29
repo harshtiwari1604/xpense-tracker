@@ -1,4 +1,5 @@
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 from supabase import create_client
 
@@ -30,8 +31,6 @@ st.markdown(
         .main { background-color: #0b0f19; color: #ffffff; }
         .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: black; border: none; }
         .stButton>button:hover { opacity: 0.9; }
-        .motivation-banner { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); padding: 15px 20px; border-radius: 10px; border-left: 5px solid #4facfe; margin: 20px 0; font-size: 15px; color: #e5e7eb; }
-        .tip-box { background: rgba(79, 172, 254, 0.08); padding: 10px 15px; border-radius: 8px; border: 1px dashed #4facfe; margin-bottom: 15px; font-size: 14px; color: #4facfe; }
     </style>
 """,
     unsafe_allow_html=True,
@@ -150,7 +149,7 @@ else:
   total_spent = int(df["amount"].sum()) if not df.empty and "amount" in df else 0
   remaining_budget = monthly_budget - total_spent
 
-  # Metrics Row (Responsive metrics)
+  # Metrics Row
   m1, m2, m3, m4 = st.columns(4)
   m1.metric("Monthly Budget", f"₹ {monthly_budget:,}")
   m2.metric("Total Spent", f"₹ {total_spent:,}")
@@ -239,7 +238,7 @@ else:
       else:
         st.sidebar.error("Amount must be > 0")
 
-  # --- MAIN BODY (Optimized for Mobile Views) ---
+  # --- MAIN BODY ---
   col_left, col_right = st.columns([1.6, 1])
 
   with col_left:
@@ -257,8 +256,6 @@ else:
               "payment_method": "Payment Method",
           }
       )
-      
-      # Wrapped inside a scrollable container for compact mobile viewing
       with st.container(height=320):
         st.dataframe(
             display_df.drop(columns=["Transaction ID"]), use_container_width=True
@@ -267,19 +264,35 @@ else:
       st.info("No expenses recorded yet. Use the left sidebar to add a spend!")
 
   with col_right:
-    st.markdown("### 📊 Spend Analytics")
+    st.markdown("### 📊 Spend Analytics (Pie Chart)")
     if not df.empty and "amount" in df:
       cat_summary = df.groupby("category")["amount"].sum().reset_index()
-      cat_summary.columns = ["Category", "Amount (₹)"]
+      cat_summary.columns = ["Category", "Amount"]
+
+      # Creating interactive Plotly Pie Chart optimized for mobile screens
+      fig = px.pie(
+          cat_summary,
+          names="Category",
+          values="Amount",
+          hole=0.4,
+          color_discrete_sequence=px.colors.sequential.RdBu,
+      )
+      fig.update_layout(
+          margin=dict(t=10, b=10, l=10, r=10),
+          height=300,
+          paper_bgcolor="rgba(0,0,0,0)",
+          plot_bgcolor="rgba(0,0,0,0)",
+          font_color="white",
+      )
+
       with st.container(height=320):
-        st.bar_chart(cat_summary, x="Category", y="Amount (₹)", color="#4facfe")
+        st.plotly_chart(fig, use_container_width=True)
     else:
       st.warning("Analytics will appear once you add expenses.")
 
-  # --- BOTTOM SECTION (Moved below main body for clean layout) ---
+  # --- BOTTOM SECTION ---
   st.markdown("---")
 
-  # Delete Specific Expense moved to bottom and wrapped neatly
   if not df.empty and "amount" in df:
     with st.expander("🗑️ Manage / Delete Accidental Expenses", expanded=False):
       expense_options = {
@@ -293,7 +306,7 @@ else:
           "Select the exact transaction to remove",
           options=list(expense_options.keys()),
       )
-      
+
       col_del1, col_del2 = st.columns([1, 2])
       with col_del1:
         if st.button("Delete Selected Expense"):
@@ -306,13 +319,3 @@ else:
             st.rerun()
           except Exception as e:
             st.error(f"Failed: {e}")
-
-  # Financial Tip of the Day placed right at the absolute bottom
-  st.markdown(
-      """
-        <div class="motivation-banner">
-            ✨ <b>Financial Tip of the Day:</b> "Don't save what is left after spending, but spend what is left after saving." Let's make every penny count today! 🎯
-        </div>
-    """,
-      unsafe_allow_html=True,
-  )
