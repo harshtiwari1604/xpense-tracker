@@ -111,7 +111,7 @@ if not st.session_state.user:
 else:
   current_user = st.session_state.user
 
-  # Fetch profile data from database (Default: 25000 budget, 5000 goal)
+  # Fetch profile data from database
   try:
     profile_res = (
         supabase.table("user_profiles")
@@ -153,16 +153,6 @@ else:
       unsafe_allow_html=True,
   )
 
-  # Subtle guide tip
-  st.markdown(
-      """
-        <div class="tip-box">
-            👉 <b>Quick Tip:</b> Daily expenses add karne ke liye <b>left sidebar (Control Center)</b> ka use karein. Wahan se aap apna budget bhi change kar sakte hain!
-        </div>
-    """,
-      unsafe_allow_html=True,
-  )
-
   # Fetch expenses
   try:
     response = (
@@ -192,6 +182,21 @@ else:
   st.sidebar.markdown("## 🕹️ Control Center")
   st.sidebar.markdown(f"**Logged in as:** {current_user.email}")
   st.sidebar.markdown("---")
+
+  # --- QUICK CALCULATOR EXPANDER ---
+  with st.sidebar.expander("🧮 Quick Calculator", expanded=False):
+    calc_expr = st.text_input(
+        "Enter expression (e.g. 150 + 45 + 80)", key="calc_input"
+    )
+    if calc_expr:
+      try:
+        # Safe evaluation of basic mathematical expressions
+        calc_result = eval(
+            calc_expr, {"__builtins__": None}, {}
+        )  
+        st.success(f"Result: **₹ {calc_result}**")
+      except Exception:
+        st.error("Invalid math expression")
 
   st.sidebar.markdown("### ⚙️ Update Targets")
   new_b = st.sidebar.number_input(
@@ -263,9 +268,10 @@ else:
     st.markdown("### 📋 Your Personal Transactions")
     if not df.empty and "amount" in df:
       display_df = df[
-          ["date", "category", "description", "amount", "payment_method"]
+          ["id", "date", "category", "description", "amount", "payment_method"]
       ].rename(
           columns={
+              "id": "Transaction ID",
               "date": "Date",
               "category": "Category",
               "description": "Description",
@@ -273,7 +279,34 @@ else:
               "payment_method": "Payment Method",
           }
       )
-      st.dataframe(display_df, use_container_width=True)
+      st.dataframe(
+          display_df.drop(columns=["Transaction ID"]), use_container_width=True
+      )
+
+      # --- DELETE EXPENSE SECTION ---
+      with st.expander("🗑️ Delete an Accidental Expense"):
+        # Create a select box mapping descriptions/amounts to transaction IDs
+        expense_options = {
+            f"[{row['date']}] {row['category']} - ₹{row['amount']} ({row['description'] if row['description'] else 'No notes'})": row[
+                "id"
+            ]
+            for index, row in df.iterrows()
+        }
+
+        selected_label = st.selectbox(
+            "Select transaction to remove", options=list(expense_options.keys())
+        )
+        if st.button("Delete Selected Expense"):
+          target_id = expense_options[selected_label]
+          try:
+            supabase.table("expenses").delete().eq(
+                "id", target_id
+            ).execute()
+            st.success("Expense successfully deleted!")
+            st.rerun()
+          except Exception as e:
+            st.error(f"Failed to delete: {e}")
+
     else:
       st.info(
           "No expenses recorded yet. Use the left sidebar to add your first"
