@@ -3,9 +3,9 @@ import plotly.express as px
 import streamlit as st
 from supabase import create_client
 
-# --- PAGE CONFIGURATION ---
+# Page Configuration
 st.set_page_config(
-    page_title="Xpense Tracker Pro", page_icon="⚡", layout="centered"
+    page_title="Xpense Tracker Pro", page_icon="⚡", layout="wide"
 )
 
 # --- SECURE CREDENTIALS SETUP ---
@@ -17,80 +17,34 @@ SUPABASE_KEY = st.secrets.get(
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxbm16d3FheXhldHVobHlnamltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODY1MjQsImV4cCI6MjEwMDg2MjUyNH0.Xkfbl2puPZxOhRMkmyQWbhIJnbUiNh5Isf5GynUnWNM",
 )
 
+
 @st.cache_resource
 def init_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
-supabase = init_supabase()
 
-# --- CLEAN & MODERN STYLING ---
-st.markdown(
-    """
-    <style>
-        /* Main Background */
-        .stApp {
-            background-color: #F8F9FA;
-        }
-        
-        /* Headers formatting */
-        h1, h2, h3 {
-            color: #1A1A1A !important;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        /* Input fields styling */
-        [data-testid="stTextInput"] input {
-            background-color: #FFFFFF;
-            color: #1A1A1A;
-            border: 1px solid #CED4DA;
-            border-radius: 8px;
-            padding: 10px;
-        }
-        
-        /* Primary Action Buttons (Yellow Theme) */
-        .stButton>button {
-            width: 100%;
-            border-radius: 25px;
-            font-weight: bold;
-            background-color: #FFC107;
-            color: #1A1A1A;
-            border: none;
-            padding: 10px;
-            box-shadow: 0px 4px 6px rgba(0,0,0,0.05);
-        }
-        .stButton>button:hover {
-            background-color: #E0A800;
-            color: #000000;
-        }
-        
-        /* Card container look */
-        .auth-container {
-            background: #FFFFFF;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
-        }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
+supabase = init_supabase()
 
 if "user" not in st.session_state:
     st.session_state.user = None
 
 # --- AUTHENTICATION SCREEN ---
 if not st.session_state.user:
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 1.5, 1])
+    st.markdown(
+        "<h1 style='text-align: center; color: #D4AC0D;'>⚡ Xpense Tracker Pro</h1>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<p style='text-align: center; color: gray;'>Smart Financial Ecosystem</p>",
+        unsafe_allow_html=True,
+    )
+
+    col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
-        st.markdown("<h1 style='text-align: center; font-size: 28px;'>⚡ Xpense Tracker</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #6C757D; margin-bottom: 30px;'>Manage your money smartly</p>", unsafe_allow_html=True)
-        
         tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
-        
+
         with tab1:
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("### Welcome Back")
             with st.form("login_form"):
                 login_email = st.text_input("Email")
                 login_pass = st.text_input("Password", type="password")
@@ -109,7 +63,7 @@ if not st.session_state.user:
                         st.error(f"Login failed: {e}")
 
         with tab2:
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("### Create Account")
             with st.form("signup_form"):
                 signup_email = st.text_input("Email Address")
                 signup_pass = st.text_input(
@@ -131,7 +85,7 @@ if not st.session_state.user:
 
 else:
     current_user = st.session_state.user
-    
+
     # Fetch profile data from database
     try:
         profile_res = (
@@ -154,8 +108,10 @@ else:
     # Top Bar with Welcome Greeting
     col_h1, col_h2 = st.columns([3, 1])
     with col_h1:
-        st.markdown(f"<h2>Welcome back! 👋</h2>", unsafe_allow_html=True)
-        st.caption(f"Logged in as: {current_user.email}")
+        st.markdown(
+            f"<h2>💛 Welcome back! <span style='font-size:16px; color:#555;'>({current_user.email})</span></h2>",
+            unsafe_allow_html=True,
+        )
     with col_h2:
         if st.button("🚪 Logout"):
             supabase.auth.sign_out()
@@ -187,7 +143,32 @@ else:
 
     st.markdown("---")
 
-    # Sidebar
+    # --- SIDEBAR: CONTROL CENTER ---
+    st.sidebar.markdown("## 🕹️ Control Center")
+    st.sidebar.markdown(f"**User:** {current_user.email}")
+    st.sidebar.markdown("---")
+
+    st.sidebar.markdown("### ⚙️ Update Targets")
+    new_b = st.sidebar.number_input(
+        "Monthly Budget (₹)", min_value=1000, value=int(monthly_budget), step=500
+    )
+    new_g = st.sidebar.number_input(
+        "Savings Goal (₹)", min_value=0, value=int(savings_goal), step=500
+    )
+
+    if st.sidebar.button("Update Targets in Cloud"):
+        try:
+            supabase.table("user_profiles").upsert({
+                "user_id": current_user.id,
+                "monthly_budget": new_b,
+                "savings_goal": new_g,
+            }).execute()
+            st.sidebar.success("Updated!")
+            st.rerun()
+        except Exception as e:
+            st.sidebar.error(f"Error: {e}")
+
+    st.sidebar.markdown("---")
     st.sidebar.markdown("### ➕ Log New Expense")
     with st.sidebar.form("expense_logger", clear_on_submit=True):
         date = st.date_input("Date")
@@ -223,24 +204,24 @@ else:
                         "amount": int(amount),
                         "payment_method": payment_method,
                     }).execute()
-                    st.sidebar.success("Saved!")
+                    st.sidebar.success("Saved to Cloud!")
                     st.rerun()
                 except Exception as e:
-                    st.sidebar.error(f"Error: {e}")
+                    st.sidebar.error(f"Error saving: {e}")
             else:
                 st.sidebar.error("Amount must be > 0")
 
-    # Main Body Layout
-    col_left, col_right = st.columns([1.5, 1])
+    # --- MAIN BODY ---
+    col_left, col_right = st.columns([1.6, 1])
 
     with col_left:
-        st.markdown("### 📋 Transactions")
+        st.markdown("### 📋 Your Personal Transactions")
         if not df.empty and "amount" in df:
             display_df = df[
                 ["id", "date", "category", "description", "amount", "payment_method"]
             ].rename(
                 columns={
-                    "id": "ID",
+                    "id": "Transaction ID",
                     "date": "Date",
                     "category": "Category",
                     "description": "Description",
@@ -248,13 +229,15 @@ else:
                     "payment_method": "Payment Method",
                 }
             )
-            with st.container(height=300):
-                st.dataframe(display_df.drop(columns=["ID"]), use_container_width=True)
+            with st.container(height=320):
+                st.dataframe(
+                    display_df.drop(columns=["Transaction ID"]), use_container_width=True
+                )
         else:
-            st.info("No expenses added yet.")
+            st.info("No expenses recorded yet. Use the left sidebar to add a spend!")
 
     with col_right:
-        st.markdown("### 📊 Analytics")
+        st.markdown("### 📊 Spend Analytics")
         if not df.empty and "amount" in df:
             cat_summary = df.groupby("category")["amount"].sum().reset_index()
             cat_summary.columns = ["Category", "Amount"]
@@ -264,14 +247,45 @@ else:
                 names="Category",
                 values="Amount",
                 hole=0.4,
-                color_discrete_sequence=px.colors.sequential.Sunset,
+                color_discrete_sequence=px.colors.sequential.YlOrBr,
             )
             fig.update_layout(
                 margin=dict(t=10, b=10, l=10, r=10),
-                height=280,
+                height=300,
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
             )
-            st.plotly_chart(fig, use_container_width=True)
+
+            with st.container(height=320):
+                st.plotly_chart(fig, use_container_width=True)
         else:
-            st.warning("Chart will show up after adding expenses.")
+            st.warning("Analytics will appear once you add expenses.")
+
+    # --- BOTTOM DELETE SECTION ---
+    st.markdown("---")
+    if not df.empty and "amount" in df:
+        with st.expander("🗑️ Manage / Delete Expenses", expanded=False):
+            expense_options = {
+                f"📅 {row['date']} | 🏷️ {row['category']} | 💰 ₹{row['amount']} | 📝 {row['description'] if row['description'] else 'No notes'}": row[
+                    "id"
+                ]
+                for index, row in df.iterrows()
+            }
+
+            selected_label = st.selectbox(
+                "Select transaction to remove",
+                options=list(expense_options.keys()),
+            )
+
+            col_del1, col_del2 = st.columns([1, 2])
+            with col_del1:
+                if st.button("Delete Selected Expense"):
+                    target_id = expense_options[selected_label]
+                    try:
+                        supabase.table("expenses").delete().eq("id", target_id).eq(
+                            "user_id", current_user.id
+                        ).execute()
+                        st.success("Deleted successfully!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed: {e}")
