@@ -30,7 +30,7 @@ st.markdown(
         .main { background-color: #0b0f19; color: #ffffff; }
         .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: black; border: none; }
         .stButton>button:hover { opacity: 0.9; }
-        .motivation-banner { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); padding: 15px 20px; border-radius: 10px; border-left: 5px solid #4facfe; margin-bottom: 20px; font-size: 16px; color: #e5e7eb; }
+        .motivation-banner { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); padding: 15px 20px; border-radius: 10px; border-left: 5px solid #4facfe; margin: 20px 0; font-size: 15px; color: #e5e7eb; }
         .tip-box { background: rgba(79, 172, 254, 0.08); padding: 10px 15px; border-radius: 8px; border: 1px dashed #4facfe; margin-bottom: 15px; font-size: 14px; color: #4facfe; }
     </style>
 """,
@@ -101,7 +101,7 @@ if not st.session_state.user:
 else:
   current_user = st.session_state.user
 
-  # Fetch profile data from database (Default: 25000 budget, 5000 goal)
+  # Fetch profile data from database
   try:
     profile_res = (
         supabase.table("user_profiles")
@@ -124,7 +124,7 @@ else:
   col_h1, col_h2 = st.columns([3, 1])
   with col_h1:
     st.markdown(
-        f"<h1>😊 Welcome back, friend! <span style='font-size:16px;"
+        f"<h1>😊 Welcome back, friend! <span style='font-size:15px;"
         f" color:#4facfe;'>({current_user.email})</span></h1>",
         unsafe_allow_html=True,
     )
@@ -133,15 +133,6 @@ else:
       supabase.auth.sign_out()
       st.session_state.user = None
       st.rerun()
-
-  st.markdown(
-      """
-        <div class="motivation-banner">
-            ✨ <b>Financial Tip of the Day:</b> "Don't save what is left after spending, but spend what is left after saving." Let's make every penny count today! 🎯
-        </div>
-    """,
-      unsafe_allow_html=True,
-  )
 
   # Fetch expenses
   try:
@@ -159,7 +150,7 @@ else:
   total_spent = int(df["amount"].sum()) if not df.empty and "amount" in df else 0
   remaining_budget = monthly_budget - total_spent
 
-  # Metrics Row
+  # Metrics Row (Responsive metrics)
   m1, m2, m3, m4 = st.columns(4)
   m1.metric("Monthly Budget", f"₹ {monthly_budget:,}")
   m2.metric("Total Spent", f"₹ {total_spent:,}")
@@ -248,13 +239,12 @@ else:
       else:
         st.sidebar.error("Amount must be > 0")
 
-  # --- MAIN BODY ---
+  # --- MAIN BODY (Optimized for Mobile Views) ---
   col_left, col_right = st.columns([1.6, 1])
 
   with col_left:
     st.markdown("### 📋 Your Personal Transactions")
     if not df.empty and "amount" in df:
-      # Show table without technical id column to user, but keep data intact
       display_df = df[
           ["id", "date", "category", "description", "amount", "payment_method"]
       ].rename(
@@ -267,47 +257,62 @@ else:
               "payment_method": "Payment Method",
           }
       )
-      st.dataframe(
-          display_df.drop(columns=["Transaction ID"]), use_container_width=True
-      )
-
-      # --- DELETE SPECIFIC ACCIDENTAL EXPENSE ---
-      with st.expander("🗑️ Delete a Specific Expense"):
-        expense_options = {
-            f"📅 {row['date']} | 🏷️ {row['category']} | 💰 ₹{row['amount']} | 📝 {row['description'] if row['description'] else 'No notes'}": row[
-                "id"
-            ]
-            for index, row in df.iterrows()
-        }
-
-        selected_label = st.selectbox(
-            "Select the exact entry you want to remove",
-            options=list(expense_options.keys()),
+      
+      # Wrapped inside a scrollable container for compact mobile viewing
+      with st.container(height=320):
+        st.dataframe(
+            display_df.drop(columns=["Transaction ID"]), use_container_width=True
         )
-        
-        if st.button("Delete This Expense"):
-          target_id = expense_options[selected_label]
-          try:
-            # Delete strictly matching the unique transaction ID and current user
-            supabase.table("expenses").delete().eq("id", target_id).eq(
-                "user_id", current_user.id
-            ).execute()
-            st.success("Selected expense deleted successfully!")
-            st.rerun()
-          except Exception as e:
-            st.error(f"Failed to delete: {e}")
-
     else:
-      st.info(
-          "No expenses recorded yet. Use the left sidebar to add your first"
-          " spend!"
-      )
+      st.info("No expenses recorded yet. Use the left sidebar to add a spend!")
 
   with col_right:
     st.markdown("### 📊 Spend Analytics")
     if not df.empty and "amount" in df:
       cat_summary = df.groupby("category")["amount"].sum().reset_index()
       cat_summary.columns = ["Category", "Amount (₹)"]
-      st.bar_chart(cat_summary, x="Category", y="Amount (₹)", color="#4facfe")
+      with st.container(height=320):
+        st.bar_chart(cat_summary, x="Category", y="Amount (₹)", color="#4facfe")
     else:
       st.warning("Analytics will appear once you add expenses.")
+
+  # --- BOTTOM SECTION (Moved below main body for clean layout) ---
+  st.markdown("---")
+
+  # Delete Specific Expense moved to bottom and wrapped neatly
+  if not df.empty and "amount" in df:
+    with st.expander("🗑️ Manage / Delete Accidental Expenses", expanded=False):
+      expense_options = {
+          f"📅 {row['date']} | 🏷️ {row['category']} | 💰 ₹{row['amount']} | 📝 {row['description'] if row['description'] else 'No notes'}": row[
+              "id"
+          ]
+          for index, row in df.iterrows()
+      }
+
+      selected_label = st.selectbox(
+          "Select the exact transaction to remove",
+          options=list(expense_options.keys()),
+      )
+      
+      col_del1, col_del2 = st.columns([1, 2])
+      with col_del1:
+        if st.button("Delete Selected Expense"):
+          target_id = expense_options[selected_label]
+          try:
+            supabase.table("expenses").delete().eq("id", target_id).eq(
+                "user_id", current_user.id
+            ).execute()
+            st.success("Deleted successfully!")
+            st.rerun()
+          except Exception as e:
+            st.error(f"Failed: {e}")
+
+  # Financial Tip of the Day placed right at the absolute bottom
+  st.markdown(
+      """
+        <div class="motivation-banner">
+            ✨ <b>Financial Tip of the Day:</b> "Don't save what is left after spending, but spend what is left after saving." Let's make every penny count today! 🎯
+        </div>
+    """,
+      unsafe_allow_html=True,
+  )
