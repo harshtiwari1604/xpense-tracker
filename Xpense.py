@@ -148,6 +148,18 @@ else:
     st.sidebar.markdown(f"**User:** {current_user.email}")
     st.sidebar.markdown("---")
 
+    # --- QUICK CALCULATOR EXPANDER (RESTORED) ---
+    with st.sidebar.expander("🧮 Quick Calculator", expanded=False):
+        calc_expr = st.text_input(
+            "Enter expression (e.g. 150 + 45 + 80)", key="calc_input"
+        )
+        if calc_expr:
+            try:
+                calc_result = eval(calc_expr, {"__builtins__": None}, {})
+                st.success(f"Result: **₹ {calc_result}**")
+            except Exception:
+                st.error("Invalid math expression")
+
     st.sidebar.markdown("### ⚙️ Update Targets")
     new_b = st.sidebar.number_input(
         "Monthly Budget (₹)", min_value=1000, value=int(monthly_budget), step=500
