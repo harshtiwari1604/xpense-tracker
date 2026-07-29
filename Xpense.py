@@ -10,294 +10,312 @@ st.set_page_config(
 
 # --- SECURE CREDENTIALS SETUP ---
 SUPABASE_URL = st.secrets.get(
-    "SUPABASE_URL", "https://bqnmzwqayxetuhlygjim.supabase.co"
+    "SUPABASE_URL", "https://vryxhpolhefvuqxshxsq.supabase.co"
 )
 SUPABASE_KEY = st.secrets.get(
-    "SUPABASE_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxbm16d3FheXhldHVobHlnamltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODY1MjQsImV4cCI6MjEwMDg2MjUyNH0.Xkfbl2puPZxOhRMkmyQWbhIJnbUiNh5Isf5GynUnWNM",
+    "SUPABASE_KEY", "sb_publishable_-yQnaJJeKHq0XEm1-4-AQw_HTBUynKk"
 )
 
 
 @st.cache_resource
 def init_supabase():
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+  return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 supabase = init_supabase()
 
+# --- PREMIUM STYLING ---
+st.markdown(
+    """
+    <style>
+        .main { background-color: #0b0f19; color: #ffffff; }
+        .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: black; border: none; }
+        .stButton>button:hover { opacity: 0.9; }
+    </style>
+""",
+    unsafe_allow_html=True,
+)
+
 if "user" not in st.session_state:
-    st.session_state.user = None
+  st.session_state.user = None
 
 # --- AUTHENTICATION SCREEN ---
 if not st.session_state.user:
-    st.markdown(
-        "<h1 style='text-align: center; color: #D4AC0D;'>⚡ Xpense Tracker Pro</h1>",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        "<p style='text-align: center; color: gray;'>Smart Financial Ecosystem</p>",
-        unsafe_allow_html=True,
-    )
+  st.markdown(
+      "<h1 style='text-align: center; color: #4facfe;'>⚡ Xpense Tracker"
+      " Pro</h1>",
+      unsafe_allow_html=True,
+  )
+  st.markdown(
+      "<p style='text-align: center; color: gray;'>Secure Multi-User Financial"
+      " Ecosystem</p>",
+      unsafe_allow_html=True,
+  )
 
-    col1, col2, col3 = st.columns([1, 1.2, 1])
-    with col2:
-        tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
+  col1, col2, col3 = st.columns([1, 1.2, 1])
+  with col2:
+    tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
 
-        with tab1:
-            st.markdown("### Welcome Back")
-            with st.form("login_form"):
-                login_email = st.text_input("Email")
-                login_pass = st.text_input("Password", type="password")
-                login_btn = st.form_submit_button("Login")
+    with tab1:
+      st.markdown("### Welcome Back")
+      with st.form("login_form"):
+        login_email = st.text_input("Email")
+        login_pass = st.text_input("Password", type="password")
+        login_btn = st.form_submit_button("Login")
 
-                if login_btn:
-                    try:
-                        res = supabase.auth.sign_in_with_password({
-                            "email": login_email,
-                            "password": login_pass,
-                        })
-                        st.session_state.user = res.user
-                        st.success("Login Successful!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Login failed: {e}")
+        if login_btn:
+          try:
+            res = supabase.auth.sign_in_with_password({
+                "email": login_email,
+                "password": login_pass,
+            })
+            st.session_state.user = res.user
+            st.success("Login Successful!")
+            st.rerun()
+          except Exception as e:
+            st.error(f"Login failed: {e}")
 
-        with tab2:
-            st.markdown("### Create Account")
-            with st.form("signup_form"):
-                signup_email = st.text_input("Email Address")
-                signup_pass = st.text_input(
-                    "Create Password (min 6 chars)", type="password"
-                )
-                signup_btn = st.form_submit_button("Sign Up")
+    with tab2:
+      st.markdown("### Create Account")
+      with st.form("signup_form"):
+        signup_email = st.text_input("Email Address")
+        signup_pass = st.text_input(
+            "Create Password (min 6 chars)", type="password"
+        )
+        signup_btn = st.form_submit_button("Sign Up")
 
-                if signup_btn:
-                    try:
-                        res = supabase.auth.sign_up({
-                            "email": signup_email,
-                            "password": signup_pass,
-                        })
-                        st.success(
-                            "Account created! Check your email to verify or try logging in."
-                        )
-                    except Exception as e:
-                        st.error(f"Signup failed: {e}")
+        if signup_btn:
+          try:
+            res = supabase.auth.sign_up({
+                "email": signup_email,
+                "password": signup_pass,
+            })
+            st.success(
+                "Account created! Check your email to verify or try logging"
+                " in."
+            )
+          except Exception as e:
+            st.error(f"Signup failed: {e}")
 
 else:
-    current_user = st.session_state.user
+  current_user = st.session_state.user
 
-    # Fetch profile data from database
-    try:
-        profile_res = (
-            supabase.table("user_profiles")
-            .select("*")
-            .eq("user_id", current_user.id)
-            .execute()
-        )
-        if profile_res.data:
-            user_profile = profile_res.data[0]
-            monthly_budget = user_profile.get("monthly_budget", 25000)
-            savings_goal = user_profile.get("savings_goal", 5000)
-        else:
-            monthly_budget = 25000
-            savings_goal = 5000
-    except:
-        monthly_budget = 25000
-        savings_goal = 5000
-
-    # Top Bar with Welcome Greeting
-    col_h1, col_h2 = st.columns([3, 1])
-    with col_h1:
-        st.markdown(
-            f"<h2>💛 Welcome back! <span style='font-size:16px; color:#555;'>({current_user.email})</span></h2>",
-            unsafe_allow_html=True,
-        )
-    with col_h2:
-        if st.button("🚪 Logout"):
-            supabase.auth.sign_out()
-            st.session_state.user = None
-            st.rerun()
-
-    # Fetch expenses
-    try:
-        response = (
-            supabase.table("expenses")
-            .select("*")
-            .eq("user_id", current_user.id)
-            .execute()
-        )
-        expenses_data = response.data
-    except:
-        expenses_data = []
-
-    df = pd.DataFrame(expenses_data)
-    total_spent = int(df["amount"].sum()) if not df.empty and "amount" in df else 0
-    remaining_budget = monthly_budget - total_spent
-
-    # Metrics Row
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Monthly Budget", f"₹ {monthly_budget:,}")
-    m2.metric("Total Spent", f"₹ {total_spent:,}")
-    m3.metric("Remaining Balance", f"₹ {remaining_budget:,}")
-    m4.metric("Savings Goal 🎯", f"₹ {savings_goal:,}")
-
-    st.markdown("---")
-
-    # --- SIDEBAR: CONTROL CENTER ---
-    st.sidebar.markdown("## 🕹️ Control Center")
-    st.sidebar.markdown(f"**User:** {current_user.email}")
-    st.sidebar.markdown("---")
-
-    # --- QUICK CALCULATOR EXPANDER (RESTORED) ---
-    with st.sidebar.expander("🧮 Quick Calculator", expanded=False):
-        calc_expr = st.text_input(
-            "Enter expression (e.g. 150 + 45 + 80)", key="calc_input"
-        )
-        if calc_expr:
-            try:
-                calc_result = eval(calc_expr, {"__builtins__": None}, {})
-                st.success(f"Result: **₹ {calc_result}**")
-            except Exception:
-                st.error("Invalid math expression")
-
-    st.sidebar.markdown("### ⚙️ Update Targets")
-    new_b = st.sidebar.number_input(
-        "Monthly Budget (₹)", min_value=1000, value=int(monthly_budget), step=500
+  # Fetch profile data from database
+  try:
+    profile_res = (
+        supabase.table("user_profiles")
+        .select("*")
+        .eq("user_id", current_user.id)
+        .execute()
     )
-    new_g = st.sidebar.number_input(
-        "Savings Goal (₹)", min_value=0, value=int(savings_goal), step=500
+    if profile_res.data:
+      user_profile = profile_res.data[0]
+      monthly_budget = user_profile.get("monthly_budget", 25000)
+      savings_goal = user_profile.get("savings_goal", 5000)
+    else:
+      monthly_budget = 25000
+      savings_goal = 5000
+  except:
+    monthly_budget = 25000
+    savings_goal = 5000
+
+  # Top Bar with Welcome Greeting
+  col_h1, col_h2 = st.columns([3, 1])
+  with col_h1:
+    st.markdown(
+        f"<h1>😊 Welcome back, friend! <span style='font-size:15px;"
+        f" color:#4facfe;'>({current_user.email})</span></h1>",
+        unsafe_allow_html=True,
+    )
+  with col_h2:
+    if st.button("🚪 Logout"):
+      supabase.auth.sign_out()
+      st.session_state.user = None
+      st.rerun()
+
+  # Fetch expenses
+  try:
+    response = (
+        supabase.table("expenses")
+        .select("*")
+        .eq("user_id", current_user.id)
+        .execute()
+    )
+    expenses_data = response.data
+  except:
+    expenses_data = []
+
+  df = pd.DataFrame(expenses_data)
+  total_spent = int(df["amount"].sum()) if not df.empty and "amount" in df else 0
+  remaining_budget = monthly_budget - total_spent
+
+  # Metrics Row
+  m1, m2, m3, m4 = st.columns(4)
+  m1.metric("Monthly Budget", f"₹ {monthly_budget:,}")
+  m2.metric("Total Spent", f"₹ {total_spent:,}")
+  m3.metric("Remaining Balance", f"₹ {remaining_budget:,}")
+  m4.metric("Savings Goal 🎯", f"₹ {savings_goal:,}")
+
+  st.markdown("---")
+
+  # --- SIDEBAR: CONTROL CENTER ---
+  st.sidebar.markdown("## 🕹️ Control Center")
+  st.sidebar.markdown(f"**Logged in as:** {current_user.email}")
+  st.sidebar.markdown("---")
+
+  # --- QUICK CALCULATOR EXPANDER ---
+  with st.sidebar.expander("🧮 Quick Calculator", expanded=False):
+    calc_expr = st.text_input(
+        "Enter expression (e.g. 150 + 45 + 80)", key="calc_input"
+    )
+    if calc_expr:
+      try:
+        calc_result = eval(calc_expr, {"__builtins__": None}, {})
+        st.success(f"Result: **₹ {calc_result}**")
+      except Exception:
+        st.error("Invalid math expression")
+
+  st.sidebar.markdown("### ⚙️ Update Targets")
+  new_b = st.sidebar.number_input(
+      "Monthly Budget (₹)", min_value=1000, value=int(monthly_budget), step=500
+  )
+  new_g = st.sidebar.number_input(
+      "Savings Goal (₹)", min_value=0, value=int(savings_goal), step=500
+  )
+
+  if st.sidebar.button("Update Targets in Cloud"):
+    try:
+      supabase.table("user_profiles").upsert({
+          "user_id": current_user.id,
+          "monthly_budget": new_b,
+          "savings_goal": new_g,
+      }).execute()
+      st.sidebar.success("Updated!")
+      st.rerun()
+    except Exception as e:
+      st.sidebar.error(f"Error: {e}")
+
+  st.sidebar.markdown("---")
+  st.sidebar.markdown("### ➕ Log New Expense")
+  with st.sidebar.form("expense_logger", clear_on_submit=True):
+    date = st.date_input("Date")
+    category = st.selectbox(
+        "Category",
+        [
+            "Food & Dining",
+            "Study / Education",
+            "Transport",
+            "Entertainment",
+            "Utilities",
+            "Shopping",
+            "Others",
+        ],
+    )
+    description = st.text_input("Description / Notes")
+    amount = st.number_input(
+        "Amount (₹)", min_value=0, value=100, step=10, format="%d"
+    )
+    payment_method = st.selectbox(
+        "Payment Mode", ["UPI", "Credit Card", "Net Banking", "Cash"]
     )
 
-    if st.sidebar.button("Update Targets in Cloud"):
+    submitted = st.form_submit_button("Record Spend")
+    if submitted:
+      if amount > 0:
         try:
-            supabase.table("user_profiles").upsert({
-                "user_id": current_user.id,
-                "monthly_budget": new_b,
-                "savings_goal": new_g,
-            }).execute()
-            st.sidebar.success("Updated!")
-            st.rerun()
+          supabase.table("expenses").insert({
+              "user_id": current_user.id,
+              "date": str(date),
+              "category": category,
+              "description": description,
+              "amount": int(amount),
+              "payment_method": payment_method,
+          }).execute()
+          st.sidebar.success("Saved to Cloud!")
+          st.rerun()
         except Exception as e:
-            st.sidebar.error(f"Error: {e}")
+          st.sidebar.error(f"Error saving: {e}")
+      else:
+        st.sidebar.error("Amount must be > 0")
 
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### ➕ Log New Expense")
-    with st.sidebar.form("expense_logger", clear_on_submit=True):
-        date = st.date_input("Date")
-        category = st.selectbox(
-            "Category",
-            [
-                "Food & Dining",
-                "Study / Education",
-                "Transport",
-                "Entertainment",
-                "Utilities",
-                "Shopping",
-                "Others",
-            ],
-        )
-        description = st.text_input("Description / Notes")
-        amount = st.number_input(
-            "Amount (₹)", min_value=0, value=100, step=10, format="%d"
-        )
-        payment_method = st.selectbox(
-            "Payment Mode", ["UPI", "Credit Card", "Net Banking", "Cash"]
-        )
+  # --- MAIN BODY ---
+  col_left, col_right = st.columns([1.6, 1])
 
-        submitted = st.form_submit_button("Record Spend")
-        if submitted:
-            if amount > 0:
-                try:
-                    supabase.table("expenses").insert({
-                        "user_id": current_user.id,
-                        "date": str(date),
-                        "category": category,
-                        "description": description,
-                        "amount": int(amount),
-                        "payment_method": payment_method,
-                    }).execute()
-                    st.sidebar.success("Saved to Cloud!")
-                    st.rerun()
-                except Exception as e:
-                    st.sidebar.error(f"Error saving: {e}")
-            else:
-                st.sidebar.error("Amount must be > 0")
-
-    # --- MAIN BODY ---
-    col_left, col_right = st.columns([1.6, 1])
-
-    with col_left:
-        st.markdown("### 📋 Your Personal Transactions")
-        if not df.empty and "amount" in df:
-            display_df = df[
-                ["id", "date", "category", "description", "amount", "payment_method"]
-            ].rename(
-                columns={
-                    "id": "Transaction ID",
-                    "date": "Date",
-                    "category": "Category",
-                    "description": "Description",
-                    "amount": "Amount (₹)",
-                    "payment_method": "Payment Method",
-                }
-            )
-            with st.container(height=320):
-                st.dataframe(
-                    display_df.drop(columns=["Transaction ID"]), use_container_width=True
-                )
-        else:
-            st.info("No expenses recorded yet. Use the left sidebar to add a spend!")
-
-    with col_right:
-        st.markdown("### 📊 Spend Analytics")
-        if not df.empty and "amount" in df:
-            cat_summary = df.groupby("category")["amount"].sum().reset_index()
-            cat_summary.columns = ["Category", "Amount"]
-
-            fig = px.pie(
-                cat_summary,
-                names="Category",
-                values="Amount",
-                hole=0.4,
-                color_discrete_sequence=px.colors.sequential.YlOrBr,
-            )
-            fig.update_layout(
-                margin=dict(t=10, b=10, l=10, r=10),
-                height=300,
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-            )
-
-            with st.container(height=320):
-                st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("Analytics will appear once you add expenses.")
-
-    # --- BOTTOM DELETE SECTION ---
-    st.markdown("---")
+  with col_left:
+    st.markdown("### 📋 Your Personal Transactions")
     if not df.empty and "amount" in df:
-        with st.expander("🗑️ Manage / Delete Expenses", expanded=False):
-            expense_options = {
-                f"📅 {row['date']} | 🏷️ {row['category']} | 💰 ₹{row['amount']} | 📝 {row['description'] if row['description'] else 'No notes'}": row[
-                    "id"
-                ]
-                for index, row in df.iterrows()
-            }
+      display_df = df[
+          ["id", "date", "category", "description", "amount", "payment_method"]
+      ].rename(
+          columns={
+              "id": "Transaction ID",
+              "date": "Date",
+              "category": "Category",
+              "description": "Description",
+              "amount": "Amount (₹)",
+              "payment_method": "Payment Method",
+          }
+      )
+      with st.container(height=320):
+        st.dataframe(
+            display_df.drop(columns=["Transaction ID"]), use_container_width=True
+        )
+    else:
+      st.info("No expenses recorded yet. Use the left sidebar to add a spend!")
 
-            selected_label = st.selectbox(
-                "Select transaction to remove",
-                options=list(expense_options.keys()),
-            )
+  with col_right:
+    st.markdown("### 📊 Spend Analytics (Pie Chart)")
+    if not df.empty and "amount" in df:
+      cat_summary = df.groupby("category")["amount"].sum().reset_index()
+      cat_summary.columns = ["Category", "Amount"]
 
-            col_del1, col_del2 = st.columns([1, 2])
-            with col_del1:
-                if st.button("Delete Selected Expense"):
-                    target_id = expense_options[selected_label]
-                    try:
-                        supabase.table("expenses").delete().eq("id", target_id).eq(
-                            "user_id", current_user.id
-                        ).execute()
-                        st.success("Deleted successfully!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Failed: {e}")
+      # Creating interactive Plotly Pie Chart optimized for mobile screens
+      fig = px.pie(
+          cat_summary,
+          names="Category",
+          values="Amount",
+          hole=0.4,
+          color_discrete_sequence=px.colors.sequential.RdBu,
+      )
+      fig.update_layout(
+          margin=dict(t=10, b=10, l=10, r=10),
+          height=300,
+          paper_bgcolor="rgba(0,0,0,0)",
+          plot_bgcolor="rgba(0,0,0,0)",
+          font_color="white",
+      )
+
+      with st.container(height=320):
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+      st.warning("Analytics will appear once you add expenses.")
+
+  # --- BOTTOM SECTION ---
+  st.markdown("---")
+
+  if not df.empty and "amount" in df:
+    with st.expander("🗑️ Manage / Delete Accidental Expenses", expanded=False):
+      expense_options = {
+          f"📅 {row['date']} | 🏷️ {row['category']} | 💰 ₹{row['amount']} | 📝 {row['description'] if row['description'] else 'No notes'}": row[
+              "id"
+          ]
+          for index, row in df.iterrows()
+      }
+
+      selected_label = st.selectbox(
+          "Select the exact transaction to remove",
+          options=list(expense_options.keys()),
+      )
+
+      col_del1, col_del2 = st.columns([1, 2])
+      with col_del1:
+        if st.button("Delete Selected Expense"):
+          target_id = expense_options[selected_label]
+          try:
+            supabase.table("expenses").delete().eq("id", target_id).eq(
+                "user_id", current_user.id
+            ).execute()
+            st.success("Deleted successfully!")
+            st.rerun()
+          except Exception as e:
+            st.error(f"Failed: {e}")
