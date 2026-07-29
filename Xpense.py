@@ -53,16 +53,6 @@ if not st.session_state.user:
       unsafe_allow_html=True,
   )
 
-  st.markdown(
-      """
-        <div style='text-align: center; max-width: 600px; margin: 20px auto; padding: 15px; background: rgba(79, 172, 254, 0.1); border-radius: 10px; border: 1px solid rgba(79, 172, 254, 0.2);'>
-            <p style='color: #4facfe; font-size: 18px; font-weight: 600; margin: 0;'>💡 "Financial freedom isn't about having a lot of money; it's about having control over your choices."</p>
-            <p style='color: #9ca3af; font-size: 13px; margin-top: 5px;'>Track smart today, secure your tomorrow! 🚀</p>
-        </div>
-    """,
-      unsafe_allow_html=True,
-  )
-
   col1, col2, col3 = st.columns([1, 1.2, 1])
   with col2:
     tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
@@ -111,7 +101,7 @@ if not st.session_state.user:
 else:
   current_user = st.session_state.user
 
-  # Fetch profile data from database
+  # Fetch profile data from database (Default: 25000 budget, 5000 goal)
   try:
     profile_res = (
         supabase.table("user_profiles")
@@ -190,10 +180,7 @@ else:
     )
     if calc_expr:
       try:
-        # Safe evaluation of basic mathematical expressions
-        calc_result = eval(
-            calc_expr, {"__builtins__": None}, {}
-        )  
+        calc_result = eval(calc_expr, {"__builtins__": None}, {})
         st.success(f"Result: **₹ {calc_result}**")
       except Exception:
         st.error("Invalid math expression")
@@ -267,6 +254,7 @@ else:
   with col_left:
     st.markdown("### 📋 Your Personal Transactions")
     if not df.empty and "amount" in df:
+      # Show table without technical id column to user, but keep data intact
       display_df = df[
           ["id", "date", "category", "description", "amount", "payment_method"]
       ].rename(
@@ -283,26 +271,28 @@ else:
           display_df.drop(columns=["Transaction ID"]), use_container_width=True
       )
 
-      # --- DELETE EXPENSE SECTION ---
-      with st.expander("🗑️ Delete an Accidental Expense"):
-        # Create a select box mapping descriptions/amounts to transaction IDs
+      # --- DELETE SPECIFIC ACCIDENTAL EXPENSE ---
+      with st.expander("🗑️ Delete a Specific Expense"):
         expense_options = {
-            f"[{row['date']}] {row['category']} - ₹{row['amount']} ({row['description'] if row['description'] else 'No notes'})": row[
+            f"📅 {row['date']} | 🏷️ {row['category']} | 💰 ₹{row['amount']} | 📝 {row['description'] if row['description'] else 'No notes'}": row[
                 "id"
             ]
             for index, row in df.iterrows()
         }
 
         selected_label = st.selectbox(
-            "Select transaction to remove", options=list(expense_options.keys())
+            "Select the exact entry you want to remove",
+            options=list(expense_options.keys()),
         )
-        if st.button("Delete Selected Expense"):
+        
+        if st.button("Delete This Expense"):
           target_id = expense_options[selected_label]
           try:
-            supabase.table("expenses").delete().eq(
-                "id", target_id
+            # Delete strictly matching the unique transaction ID and current user
+            supabase.table("expenses").delete().eq("id", target_id).eq(
+                "user_id", current_user.id
             ).execute()
-            st.success("Expense successfully deleted!")
+            st.success("Selected expense deleted successfully!")
             st.rerun()
           except Exception as e:
             st.error(f"Failed to delete: {e}")
